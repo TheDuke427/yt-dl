@@ -15,6 +15,7 @@ import httpx
 app = FastAPI()
 
 RECORDINGS_DIR = Path(os.getenv("RECORDINGS_DIR", "/recordings"))
+COOKIES_PATH = Path(os.getenv("COOKIES_DIR", "/cookies")) / "cookies.txt"
 GLUETUN = "http://localhost:8000"
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
@@ -47,7 +48,7 @@ async def status():
         {k: v for k, v in r.items() if not k.startswith("_")}
         for r in recordings.values()
     ]
-    return {"vpn": vpn, "recordings": recs}
+    return {"vpn": vpn, "recordings": recs, "cookies_loaded": COOKIES_PATH.exists()}
 
 
 def _launch(rec_id: str):
@@ -69,6 +70,8 @@ def _launch(rec_id: str):
     ]
     if rec.get("from_start"):
         cmd.append("--live-from-start")
+    if COOKIES_PATH.exists():
+        cmd.extend(["--cookies", str(COOKIES_PATH)])
     cmd.append(rec["url"])
 
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)

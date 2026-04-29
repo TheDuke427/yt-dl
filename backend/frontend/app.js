@@ -4,6 +4,12 @@ let state = { vpn: {}, recordings: [] };
 
 // ── VPN status ──────────────────────────────────────────────────────────────
 
+function renderCookies(loaded) {
+  const el = $("cookies-status");
+  el.className = "vpn-pill " + (loaded ? "vpn-running" : "vpn-stopped");
+  el.innerHTML = `<span class="vpn-dot"></span><span>${loaded ? "Cookies loaded" : "No cookies"}</span>`;
+}
+
 function renderVPN(vpn) {
   const pill  = $("vpn-status");
   const label = $("vpn-label");
@@ -94,6 +100,7 @@ async function poll() {
     if (!res.ok) return;
     state = await res.json();
     renderVPN(state.vpn);
+    renderCookies(state.cookies_loaded);
     renderRecordings(state.recordings);
   } catch (_) {}
 }

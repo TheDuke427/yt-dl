@@ -2,3 +2,4 @@
 .claude/
 recordings/*
 !recordings/.gitkeep
+cookies/cookies.txt
