@@ -32,7 +32,7 @@ services:
         condition: service_healthy
     volumes:
       - /mnt/downloads:/recordings
-      - ./cookies:/cookies:ro
+      - ./cookies:/cookies
     environment:
       - RECORDINGS_DIR=/recordings
       - COOKIES_DIR=/cookies
