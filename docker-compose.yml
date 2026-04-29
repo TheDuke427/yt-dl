@@ -32,6 +32,8 @@ services:
         condition: service_healthy
     volumes:
       - /mnt/downloads:/recordings
+      - ./cookies:/cookies:ro
     environment:
       - RECORDINGS_DIR=/recordings
+      - COOKIES_DIR=/cookies
     restart: unless-stopped
