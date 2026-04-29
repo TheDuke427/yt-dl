@@ -31,9 +31,7 @@ services:
       gluetun:
         condition: service_healthy
     volumes:
-      - ./recordings:/recordings
-      - ./cookies:/cookies:ro
+      - /mnt/downloads:/recordings
     environment:
       - RECORDINGS_DIR=/recordings
-      - COOKIES_DIR=/cookies
     restart: unless-stopped
