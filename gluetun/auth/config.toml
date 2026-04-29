@@ -1,0 +1,4 @@
+[[roles]]
+name = "admin"
+auth = "none"
+routes = ["GET /v1/vpn/status", "PUT /v1/vpn/status", "GET /v1/publicip/ip"]

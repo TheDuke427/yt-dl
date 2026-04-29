@@ -1,0 +1,241 @@
+:root {
+  --bg:         #0f1117;
+  --surface:    #1a1d27;
+  --surface2:   #242736;
+  --border:     #2e3250;
+  --accent:     #6c63ff;
+  --accent-h:   #7c74ff;
+  --text:       #e2e4f0;
+  --muted:      #7a7f9a;
+  --green:      #22c55e;
+  --red:        #ef4444;
+  --yellow:     #f59e0b;
+  --blue:       #3b82f6;
+  --radius:     10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ── Header ── */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+}
+.header-inner {
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+header h1 { font-size: 16px; font-weight: 600; letter-spacing: .3px; }
+
+.vpn-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  transition: border-color .3s;
+}
+.vpn-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+  transition: background .3s;
+}
+.vpn-running .vpn-dot  { background: var(--green); }
+.vpn-running           { border-color: var(--green); }
+.vpn-stopped .vpn-dot  { background: var(--red); }
+.vpn-stopped           { border-color: var(--red); }
+.vpn-unknown .vpn-dot  { background: var(--yellow); }
+
+/* ── Layout ── */
+main {
+  max-width: 860px;
+  margin: 28px auto;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+.card h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Form ── */
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.field label { font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.muted { text-transform: none; letter-spacing: 0; font-weight: 400; }
+
+input[type="url"],
+input[type="text"] {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 8px 12px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color .2s;
+  width: 100%;
+}
+input[type="url"]:focus,
+input[type="text"]:focus { border-color: var(--accent); }
+input::placeholder { color: var(--muted); }
+
+.field-row { margin-bottom: 18px; }
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.toggle-label input[type="checkbox"] { display: none; }
+.toggle-track {
+  width: 36px; height: 20px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  position: relative;
+  transition: background .2s, border-color .2s;
+  flex-shrink: 0;
+}
+.toggle-track::after {
+  content: "";
+  position: absolute;
+  width: 14px; height: 14px;
+  background: var(--muted);
+  border-radius: 50%;
+  top: 2px; left: 2px;
+  transition: transform .2s, background .2s;
+}
+.toggle-label input:checked + .toggle-track { background: var(--accent); border-color: var(--accent); }
+.toggle-label input:checked + .toggle-track::after { transform: translateX(16px); background: #fff; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity .15s, background .15s;
+}
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-primary  { background: var(--accent); color: #fff; }
+.btn-primary:not(:disabled):hover { background: var(--accent-h); }
+.btn-danger   { background: #3b1f1f; color: var(--red); border: 1px solid #5a2a2a; }
+.btn-danger:not(:disabled):hover { background: #4a2020; }
+.btn-ghost    { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-ghost:not(:disabled):hover { border-color: var(--muted); }
+.btn-sm { padding: 5px 11px; font-size: 12px; }
+
+/* ── Badge ── */
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--surface2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 1px 8px;
+}
+
+/* ── Recordings list ── */
+.empty { color: var(--muted); font-size: 13px; }
+
+.rec-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.rec-item:last-child { border-bottom: none; padding-bottom: 0; }
+.rec-item:first-child { padding-top: 0; }
+
+.rec-info { flex: 1; min-width: 0; }
+.rec-name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+.rec-meta {
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.rec-progress {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: "SF Mono", "Fira Code", monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.status-badge {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+.status-recording { background: #1a2a3a; color: var(--blue); }
+.status-completed { background: #162414; color: var(--green); }
+.status-stopped   { background: #2a2214; color: var(--yellow); }
+.status-failed    { background: #2a1414; color: var(--red); }
+
+.rec-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}

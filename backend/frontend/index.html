@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YT Stream Recorder</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <h1>YT Stream Recorder</h1>
+      <div id="vpn-status" class="vpn-pill vpn-unknown">
+        <span class="vpn-dot"></span>
+        <span id="vpn-label">VPN connecting…</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="card" id="record-card">
+      <h2>New Recording</h2>
+      <form id="record-form">
+        <div class="field">
+          <label for="url">YouTube URL</label>
+          <input type="url" id="url" placeholder="https://www.youtube.com/watch?v=…" required autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="filename">Output filename <span class="muted">(optional)</span></label>
+          <input type="text" id="filename" placeholder="my-stream" autocomplete="off">
+        </div>
+        <div class="field-row">
+          <label class="toggle-label">
+            <input type="checkbox" id="from-start">
+            <span class="toggle-track"></span>
+            <span>Record from stream start</span>
+          </label>
+        </div>
+        <button type="submit" class="btn btn-primary" id="start-btn">Start Recording</button>
+      </form>
+    </div>
+
+    <div class="card" id="recordings-card">
+      <h2>Recordings <span id="rec-count" class="badge" style="display:none"></span></h2>
+      <div id="recordings-list">
+        <p class="empty">No recordings yet.</p>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
