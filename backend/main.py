@@ -53,16 +53,20 @@ async def status():
 
 def _launch(rec_id: str):
     rec = recordings[rec_id]
-    out_path = RECORDINGS_DIR / rec["filename"]
+    mp4_path = RECORDINGS_DIR / rec["filename"]
+    ts_path = mp4_path.with_suffix(".ts")
 
-    if out_path.exists():
-        out_path.unlink()
+    for p in (mp4_path, ts_path):
+        if p.exists():
+            p.unlink()
 
+    # Record as .ts — MPEG-TS streams to disk in real time.
+    # mp4 muxing buffers everything in memory until the stream ends,
+    # so the file would never grow during a live recording.
     cmd = [
         "yt-dlp",
         "--format", "bestvideo+bestaudio/best",
-        "--merge-output-format", "mp4",
-        "--output", str(out_path),
+        "--output", str(ts_path),
         "--no-part",
         "--no-playlist",
         "--newline",
@@ -75,10 +79,13 @@ def _launch(rec_id: str):
     cmd.append(rec["url"])
 
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    rec["_proc"] = proc
-    rec["status"] = "recording"
-    rec["progress"] = ""
-    rec["started"] = datetime.now().isoformat()
+    rec.update({
+        "_proc": proc,
+        "_ts_path": ts_path,
+        "status": "recording",
+        "progress": "",
+        "started": datetime.now().isoformat(),
+    })
 
     def monitor():
         last = ""
@@ -89,10 +96,26 @@ def _launch(rec_id: str):
                 if rec_id in recordings:
                     recordings[rec_id]["progress"] = line[:140]
         proc.wait()
-        if rec_id in recordings:
-            recordings[rec_id]["status"] = "completed" if out_path.exists() else "failed"
+
+        if rec_id not in recordings:
+            ts_path.unlink(missing_ok=True)
+            return
+
+        if ts_path.exists():
+            recordings[rec_id]["status"] = "converting"
+            recordings[rec_id]["progress"] = "Converting to mp4…"
+            subprocess.run(
+                ["ffmpeg", "-y", "-i", str(ts_path), "-c", "copy", str(mp4_path)],
+                capture_output=True,
+            )
+            ts_path.unlink(missing_ok=True)
+            recordings[rec_id]["status"] = "completed" if mp4_path.exists() else "failed"
+            recordings[rec_id]["progress"] = "" if mp4_path.exists() else "Conversion failed"
+        else:
+            recordings[rec_id]["status"] = "failed"
             recordings[rec_id]["progress"] = last[:140]
-            recordings[rec_id]["_proc"] = None
+
+        recordings[rec_id]["_proc"] = None
 
     threading.Thread(target=monitor, daemon=True).start()
 
@@ -111,6 +134,7 @@ def start_recording(req: RecordRequest):
         "started": datetime.now().isoformat(),
         "progress": "",
         "_proc": None,
+        "_ts_path": None,
     }
     _launch(rec_id)
     return {"id": rec_id}
@@ -139,9 +163,8 @@ def stop_recording(rec_id: str):
             proc.wait(timeout=10)
         except subprocess.TimeoutExpired:
             proc.kill()
-    rec["status"] = "stopped"
     rec["_proc"] = None
-    return {"status": "stopped"}
+    return {"status": "stopping"}
 
 
 @app.delete("/api/recordings/{rec_id}")
@@ -152,9 +175,9 @@ def delete_recording(rec_id: str):
     proc = rec.get("_proc")
     if proc and proc.poll() is None:
         proc.kill()
-    path = RECORDINGS_DIR / rec["filename"]
-    if path.exists():
-        path.unlink()
+    for path in [rec.get("_ts_path"), RECORDINGS_DIR / rec["filename"]]:
+        if path:
+            Path(path).unlink(missing_ok=True)
     return {"status": "deleted"}
 
 

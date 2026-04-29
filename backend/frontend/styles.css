@@ -228,10 +228,11 @@ input::placeholder { color: var(--muted); }
   padding: 2px 7px;
   border-radius: 4px;
 }
-.status-recording { background: #1a2a3a; color: var(--blue); }
-.status-completed { background: #162414; color: var(--green); }
-.status-stopped   { background: #2a2214; color: var(--yellow); }
-.status-failed    { background: #2a1414; color: var(--red); }
+.status-recording   { background: #1a2a3a; color: var(--blue); }
+.status-converting  { background: #1a1a3a; color: #a78bfa; }
+.status-completed   { background: #162414; color: var(--green); }
+.status-stopped     { background: #2a2214; color: var(--yellow); }
+.status-failed      { background: #2a1414; color: var(--red); }
 
 .rec-actions {
   display: flex;

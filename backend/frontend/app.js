@@ -58,6 +58,7 @@ function renderRecordings(recs) {
     if (r.status === "failed" || r.status === "stopped") {
       actions.push(`<button class="btn btn-sm btn-primary" onclick="retryRec('${r.id}')">Retry</button>`);
     }
+    // converting: no actions, just let it finish
     if (r.status === "completed" || r.status === "stopped") {
       actions.push(`<button class="btn btn-sm btn-ghost" onclick="downloadRec('${r.id}')">Download</button>`);
     }
