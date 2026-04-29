@@ -6,6 +6,7 @@ import subprocess
 import uuid
 import os
 import re
+import signal
 import threading
 from pathlib import Path
 from datetime import datetime
@@ -78,7 +79,7 @@ def _launch(rec_id: str):
         cmd.extend(["--cookies", str(COOKIES_PATH)])
     cmd.append(rec["url"])
 
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True)
     rec.update({
         "_proc": proc,
         "_ts_path": ts_path,
@@ -151,6 +152,13 @@ def retry_recording(rec_id: str):
     return {"id": rec_id}
 
 
+def _kill(proc: subprocess.Popen):
+    try:
+        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+
+
 @app.post("/api/record/stop/{rec_id}")
 def stop_recording(rec_id: str):
     rec = recordings.get(rec_id)
@@ -158,11 +166,7 @@ def stop_recording(rec_id: str):
         raise HTTPException(404, "Not found")
     proc = rec.get("_proc")
     if proc and proc.poll() is None:
-        proc.terminate()
-        try:
-            proc.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            proc.kill()
+        _kill(proc)
     rec["_proc"] = None
     return {"status": "stopping"}
 
@@ -174,7 +178,7 @@ def delete_recording(rec_id: str):
         raise HTTPException(404, "Not found")
     proc = rec.get("_proc")
     if proc and proc.poll() is None:
-        proc.kill()
+        _kill(proc)
     for path in [rec.get("_ts_path"), RECORDINGS_DIR / rec["filename"]]:
         if path:
             Path(path).unlink(missing_ok=True)
