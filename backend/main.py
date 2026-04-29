@@ -50,11 +50,12 @@ async def status():
     return {"vpn": vpn, "recordings": recs}
 
 
-@app.post("/api/record/start")
-def start_recording(req: RecordRequest):
-    rec_id = str(uuid.uuid4())[:8]
-    safe = re.sub(r"[^\w\-]", "_", req.filename or f"stream_{rec_id}")
-    out_path = RECORDINGS_DIR / f"{safe}.mp4"
+def _launch(rec_id: str):
+    rec = recordings[rec_id]
+    out_path = RECORDINGS_DIR / rec["filename"]
+
+    if out_path.exists():
+        out_path.unlink()
 
     cmd = [
         "yt-dlp",
@@ -64,23 +65,17 @@ def start_recording(req: RecordRequest):
         "--no-part",
         "--no-playlist",
         "--newline",
-        "--hls-use-mpegts",  # write to a container that stays valid if stopped mid-stream
+        "--hls-use-mpegts",
     ]
-    if req.from_start:
+    if rec.get("from_start"):
         cmd.append("--live-from-start")
-    cmd.append(req.url)
+    cmd.append(rec["url"])
 
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-
-    recordings[rec_id] = {
-        "id": rec_id,
-        "url": req.url,
-        "filename": out_path.name,
-        "status": "recording",
-        "started": datetime.now().isoformat(),
-        "progress": "",
-        "_proc": proc,
-    }
+    rec["_proc"] = proc
+    rec["status"] = "recording"
+    rec["progress"] = ""
+    rec["started"] = datetime.now().isoformat()
 
     def monitor():
         last = ""
@@ -97,6 +92,35 @@ def start_recording(req: RecordRequest):
             recordings[rec_id]["_proc"] = None
 
     threading.Thread(target=monitor, daemon=True).start()
+
+
+@app.post("/api/record/start")
+def start_recording(req: RecordRequest):
+    rec_id = str(uuid.uuid4())[:8]
+    safe = re.sub(r"[^\w\-]", "_", req.filename or f"stream_{rec_id}")
+
+    recordings[rec_id] = {
+        "id": rec_id,
+        "url": req.url,
+        "filename": f"{safe}.mp4",
+        "from_start": req.from_start,
+        "status": "recording",
+        "started": datetime.now().isoformat(),
+        "progress": "",
+        "_proc": None,
+    }
+    _launch(rec_id)
+    return {"id": rec_id}
+
+
+@app.post("/api/record/retry/{rec_id}")
+def retry_recording(rec_id: str):
+    rec = recordings.get(rec_id)
+    if not rec:
+        raise HTTPException(404, "Not found")
+    if rec.get("status") not in ("failed", "stopped"):
+        raise HTTPException(400, "Only failed or stopped recordings can be retried")
+    _launch(rec_id)
     return {"id": rec_id}
 
 

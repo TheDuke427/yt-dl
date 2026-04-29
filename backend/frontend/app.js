@@ -49,6 +49,9 @@ function renderRecordings(recs) {
     if (r.status === "recording") {
       actions.push(`<button class="btn btn-sm btn-danger" onclick="stopRec('${r.id}')">Stop</button>`);
     }
+    if (r.status === "failed" || r.status === "stopped") {
+      actions.push(`<button class="btn btn-sm btn-primary" onclick="retryRec('${r.id}')">Retry</button>`);
+    }
     if (r.status === "completed" || r.status === "stopped") {
       actions.push(`<button class="btn btn-sm btn-ghost" onclick="downloadRec('${r.id}')">Download</button>`);
     }
@@ -99,6 +102,11 @@ poll();
 setInterval(poll, 2000);
 
 // ── Actions ──────────────────────────────────────────────────────────────────
+
+async function retryRec(id) {
+  await fetch(`/api/record/retry/${id}`, { method: "POST" });
+  poll();
+}
 
 async function stopRec(id) {
   await fetch(`/api/record/stop/${id}`, { method: "POST" });
