@@ -6,12 +6,12 @@ import subprocess
 import uuid
 import os
 import re
-import signal
 import threading
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
 import httpx
+import psutil
 
 app = FastAPI()
 
@@ -52,6 +52,17 @@ async def status():
     return {"vpn": vpn, "recordings": recs, "cookies_loaded": COOKIES_PATH.exists()}
 
 
+def _kill(proc: subprocess.Popen):
+    """Kill the process and all its children using psutil."""
+    try:
+        parent = psutil.Process(proc.pid)
+        for child in parent.children(recursive=True):
+            child.kill()
+        parent.kill()
+    except psutil.NoSuchProcess:
+        pass
+
+
 def _launch(rec_id: str):
     rec = recordings[rec_id]
     mp4_path = RECORDINGS_DIR / rec["filename"]
@@ -61,9 +72,6 @@ def _launch(rec_id: str):
         if p.exists():
             p.unlink()
 
-    # Record as .ts — MPEG-TS streams to disk in real time.
-    # mp4 muxing buffers everything in memory until the stream ends,
-    # so the file would never grow during a live recording.
     cmd = [
         "yt-dlp",
         "--format", "bestvideo+bestaudio/best",
@@ -79,21 +87,24 @@ def _launch(rec_id: str):
         cmd.extend(["--cookies", str(COOKIES_PATH)])
     cmd.append(rec["url"])
 
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     rec.update({
         "_proc": proc,
         "_ts_path": ts_path,
+        "_log": [],
         "status": "recording",
         "progress": "",
         "started": datetime.now().isoformat(),
     })
 
     def monitor():
-        last = ""
+        log = rec["_log"]
         for line in proc.stdout:
             line = ANSI.sub("", line).strip()
             if line:
-                last = line
+                log.append(line)
+                if len(log) > 200:
+                    log.pop(0)
                 if rec_id in recordings:
                     recordings[rec_id]["progress"] = line[:140]
         proc.wait()
@@ -114,7 +125,7 @@ def _launch(rec_id: str):
             recordings[rec_id]["progress"] = "" if mp4_path.exists() else "Conversion failed"
         else:
             recordings[rec_id]["status"] = "failed"
-            recordings[rec_id]["progress"] = last[:140]
+            recordings[rec_id]["progress"] = log[-1] if log else "No output"
 
         recordings[rec_id]["_proc"] = None
 
@@ -136,6 +147,7 @@ def start_recording(req: RecordRequest):
         "progress": "",
         "_proc": None,
         "_ts_path": None,
+        "_log": [],
     }
     _launch(rec_id)
     return {"id": rec_id}
@@ -150,13 +162,6 @@ def retry_recording(rec_id: str):
         raise HTTPException(400, "Only failed or stopped recordings can be retried")
     _launch(rec_id)
     return {"id": rec_id}
-
-
-def _kill(proc: subprocess.Popen):
-    try:
-        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-    except ProcessLookupError:
-        pass
 
 
 @app.post("/api/record/stop/{rec_id}")
@@ -183,6 +188,14 @@ def delete_recording(rec_id: str):
         if path:
             Path(path).unlink(missing_ok=True)
     return {"status": "deleted"}
+
+
+@app.get("/api/recordings/{rec_id}/logs")
+def get_logs(rec_id: str):
+    rec = recordings.get(rec_id)
+    if not rec:
+        raise HTTPException(404, "Not found")
+    return {"logs": rec.get("_log", [])}
 
 
 @app.get("/api/recordings/{rec_id}/download")
